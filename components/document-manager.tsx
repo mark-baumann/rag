@@ -50,7 +50,14 @@ export default function DocumentManager({
       const form = new FormData();
       form.append("file", file);
       const uploadRes = await fetch("/api/documents/upload", { method: "POST", body: form });
-      if (!uploadRes.ok) throw new Error("Upload fehlgeschlagen");
+      if (!uploadRes.ok) {
+        let msg = "Upload fehlgeschlagen";
+        try {
+          const data = await uploadRes.json();
+          if (typeof data?.error === "string" && data.error.length > 0) msg = data.error;
+        } catch {}
+        throw new Error(msg);
+      }
       const { document } = await uploadRes.json();
       toast.success("Erfolgreich hochgeladen", { id: tId });
 
@@ -118,4 +125,3 @@ function FileThumb({ mimeType }: { mimeType: string }) {
   const bg = isPdf ? "bg-red-500" : isJson ? "bg-green-500" : "bg-neutral-500";
   return <div className={`w-8 h-10 ${bg} text-white rounded-sm flex items-center justify-center text-[10px]`}>{isPdf ? "PDF" : isJson ? "JSON" : "FILE"}</div>;
 }
-

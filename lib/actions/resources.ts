@@ -11,11 +11,11 @@ import { embeddings as embeddingsTable } from "../db/schema/embeddings";
 
 export const createResource = async (input: NewResourceParams) => {
   try {
-    const { content } = insertResourceSchema.parse(input);
+    const { content, documentId } = insertResourceSchema.parse(input);
 
     const [resource] = await db
       .insert(resources)
-      .values({ content })
+      .values({ content, documentId })
       .returning();
 
     const embeddings = await generateEmbeddings(content);

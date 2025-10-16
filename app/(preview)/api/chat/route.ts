@@ -8,7 +8,7 @@ import { z } from "zod";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, documentId } = await req.json();
 
   const result = streamText({
     model: openai("gpt-4o"),
@@ -43,11 +43,12 @@ export async function POST(req: Request) {
         parameters: z.object({
           question: z.string().describe("the users question"),
           similarQuestions: z.array(z.string()).describe("keywords to search"),
+          documentId: z.string().optional().describe("optional document id to filter knowledge base"),
         }),
-        execute: async ({ similarQuestions }) => {
+        execute: async ({ similarQuestions, documentId: docId }) => {
           const results = await Promise.all(
             similarQuestions.map(
-              async (question) => await findRelevantContent(question),
+              async (question) => await findRelevantContent(question, { documentId: docId ?? documentId }),
             ),
           );
           // Flatten the array of arrays and remove duplicates based on 'name'

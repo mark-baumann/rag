@@ -8,15 +8,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import ReactMarkdown, { Options } from "react-markdown";
 import React from "react";
 import ProjectOverview from "@/components/project-overview";
+import DocumentManager from "@/components/document-manager";
 import { LoadingIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function Chat() {
   const [toolCall, setToolCall] = useState<string>();
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | undefined>();
   const { messages, input, handleInputChange, handleSubmit, isLoading } =
     useChat({
       maxSteps: 4,
+      body: { documentId: selectedDocumentId },
       onToolCall({ toolCall }) {
         setToolCall(toolCall.toolName);
       },
@@ -64,6 +67,15 @@ export default function Chat() {
     <div className="flex justify-center items-start sm:pt-16 min-h-screen w-full dark:bg-neutral-900 px-4 md:px-0 py-4">
       <div className="flex flex-col items-center w-full max-w-[500px]">
       <ProjectOverview />
+      <div className="w-full mt-4 mb-4">
+        <DocumentManager
+          selectedId={selectedDocumentId}
+          onSelect={(id) => setSelectedDocumentId(id)}
+          onAfterUpload={() => {
+            // Keep current selection; could auto-select last uploaded
+          }}
+        />
+      </div>
       <motion.div
           animate={{
             minHeight: isExpanded ? 200 : 0,

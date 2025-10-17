@@ -1,6 +1,5 @@
 import { getDocumentById } from "@/lib/actions/documents";
 import { createResource } from "@/lib/actions/resources";
-import pdfParse from "pdf-parse";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -30,25 +29,38 @@ export async function POST(req: Request) {
     }
     console.log(`[${new Date().toISOString()}] Document found: ${doc.name}`);
 
-    console.log(`[${new Date().toISOString()}] Fetching file buffer from URL: ${doc.url}`);
-    const buf = await fetchBuffer(doc.url);
-    console.log(`[${new Date().toISOString()}] File buffer fetched. Size: ${buf.length} bytes.`);
-
     let content = "";
     console.log(`[${new Date().toISOString()}] Parsing content for mime type: ${doc.mimeType}`);
     if (doc.mimeType === "application/pdf" || doc.url.toLowerCase().endsWith(".pdf")) {
-      const data = await pdfParse(buf);
-      content = data.text || "";
-    } else if (doc.mimeType === "application/json" || doc.url.toLowerCase().endsWith(".json")) {
-      const text = buf.toString("utf-8");
-      try {
-        const obj = JSON.parse(text);
-        content = typeof obj === "string" ? obj : JSON.stringify(obj);
-      } catch {
-        content = text;
+      // Use the new dedicated parsing API route
+      const res = await fetch(new URL("/api/parse-pdf", req.url), {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: doc.url }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "PDF parsing failed");
       }
+
+      const data = await res.json();
+      content = data.content || "";
     } else {
-      content = buf.toString("utf-8");
+      console.log(`[${new Date().toISOString()}] Fetching file buffer from URL: ${doc.url}`);
+      const buf = await fetchBuffer(doc.url);
+      console.log(`[${new Date().toISOString()}] File buffer fetched. Size: ${buf.length} bytes.`);
+      if (doc.mimeType === "application/json" || doc.url.toLowerCase().endsWith(".json")) {
+        const text = buf.toString("utf-8");
+        try {
+          const obj = JSON.parse(text);
+          content = typeof obj === "string" ? obj : JSON.stringify(obj);
+        } catch {
+          content = text;
+        }
+      } else {
+        content = buf.toString("utf-8");
+      }
     }
     console.log(`[${new Date().toISOString()}] Content parsing complete. Extracted length: ${content.length}`);
 
@@ -57,6 +69,8 @@ export async function POST(req: Request) {
       console.error(`[${new Date().toISOString()}] Error: No extractable content.`);
       return new Response(JSON.stringify({ error: "No extractable content" }), { status: 400 });
     }
+
+    console.log(`[${new Date().toISOString()}] Parsed content:\n`, content);
 
     console.log(`[${new Date().toISOString()}] Starting resource creation (embedding)...`);
     const message = await createResource({ content, documentId });

@@ -43,38 +43,49 @@ export default function DocumentManager({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Start: uploading
+    console.log("File selected:", file.name);
     const tId = toast.loading("Lade Dokument hoch...");
     setLoading(true);
     try {
       const form = new FormData();
       form.append("file", file);
+      console.log("Starting file upload...");
       const uploadRes = await fetch("/api/documents/upload", { method: "POST", body: form });
+      console.log("Upload response:", uploadRes);
       if (!uploadRes.ok) {
         let msg = "Upload fehlgeschlagen";
         try {
           const data = await uploadRes.json();
+          console.error("Upload error data:", data);
           if (typeof data?.error === "string" && data.error.length > 0) msg = data.error;
         } catch {}
         throw new Error(msg);
       }
       const { document } = await uploadRes.json();
+      console.log("Upload successful. Document ID:", document.id);
       toast.success("Erfolgreich hochgeladen", { id: tId });
 
       // Next: embedding
       const t2 = toast.loading("Erstelle Embeddings...");
+      console.log("Starting embedding for document:", document.id);
       const embedRes = await fetch("/api/documents/embed", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentId: document.id }),
       });
-      if (!embedRes.ok) throw new Error("Embedding fehlgeschlagen");
+      console.log("Embedding response:", embedRes);
+      if (!embedRes.ok) {
+        console.error("Embedding error response:", await embedRes.text());
+        throw new Error("Embedding fehlgeschlagen");
+      }
+      console.log("Embedding successful.");
       toast.success("Embedding erstellt und gespeichert", { id: t2 });
 
       await refresh();
       onAfterUpload?.();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Fehler beim Upload";
+      console.error("An error occurred:", msg);
       toast.error(msg);
     } finally {
       setLoading(false);

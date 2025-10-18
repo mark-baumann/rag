@@ -112,9 +112,11 @@ export default function DocumentManager({
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {docs.map((d) => (
-          <div
+          <a
             key={d.id}
-            role="button"
+            href={d.url}
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => onSelect?.(d.id)}
             className={`border rounded-md p-2 flex items-center gap-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 ${
               selectedId === d.id ? "ring-2 ring-blue-500" : ""
@@ -123,7 +125,7 @@ export default function DocumentManager({
           >
             <FileThumb mimeType={d.mimeType} />
             <div className="text-xs truncate flex-1 text-neutral-700 dark:text-neutral-200">{d.name}</div>
-          </div>
+          </a>
         ))}
       </div>
     </div>

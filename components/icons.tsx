@@ -36,9 +36,10 @@ export const InformationIcon = ({ size = 17 }) => {
   );
 };
 
-export const LoadingIcon = () => {
+export const LoadingIcon = ({ className }: { className?: string }) => {
   return (
     <svg
+      className={className}
       height="16"
       strokeLinejoin="round"
       viewBox="0 0 16 16"
